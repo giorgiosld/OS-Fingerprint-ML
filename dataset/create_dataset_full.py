@@ -10,9 +10,9 @@ DUMP_DIRECTORY = '../'
 ELF_PTRSCAN_SCRIPT = '../preproc-ml/elf-ptrfeatures.py'
 
 OUTPUT_DATASET_FILE_LENGTH = 'dataset_only_length.csv'
-OUTPUT_DATASET_FILE_FULL = 'dataset_full.csv'
+OUTPUT_DATASET_FILE_FULL = 'dataset_200_full.csv'
 
-NUM_ROWS = 20
+LIMIT_ROWS = 50
 
 def read_meta_info(file_path):
     """
@@ -22,6 +22,8 @@ def read_meta_info(file_path):
     meta_data = []
     count_3_13 = 0
     count_4_4 = 0
+    count_4_15 = 0
+    count_5_4 = 0
     
     with open(file_path, 'r') as csvfile:
         csv_reader = csv.reader(csvfile)
@@ -33,14 +35,20 @@ def read_meta_info(file_path):
                 label = f"{row[3]},{version}"  
                 
                 # Limit to 10 entries for each version label
-                if label == 'ubuntu,3.13.0' and count_3_13 < 10:
+                if label == 'ubuntu,3.13.0' and count_3_13 < LIMIT_ROWS:
                     meta_data.append({"dump_hash": dump_hash, "label": label})
                     count_3_13 += 1
-                elif label == 'ubuntu,4.4.0' and count_4_4 < 10:
+                elif label == 'ubuntu,4.4.0' and count_4_4 < LIMIT_ROWS:
                     meta_data.append({"dump_hash": dump_hash, "label": label})
                     count_4_4 += 1
-                
-                if count_3_13 >= 10 and count_4_4 >= 10:
+                elif label == 'ubuntu,4.15.0' and count_4_15 < LIMIT_ROWS:
+                    meta_data.append({"dump_hash": dump_hash, "label": label})
+                    count_4_15 += 1
+                elif label == 'ubuntu,5.4.0' and count_5_4 < LIMIT_ROWS:
+                    meta_data.append({"dump_hash": dump_hash, "label": label})
+                    count_5_4 += 1
+
+                if count_3_13 >= LIMIT_ROWS and count_4_4 >= LIMIT_ROWS and count_4_15 >= LIMIT_ROWS and count_5_4 >= LIMIT_ROWS:
                     break
     
     return meta_data
@@ -61,6 +69,8 @@ def filter_and_add_pgd(meta_info):
     filtered_meta_info = []
     count_3_13 = 0
     count_4_4 = 0
+    count_4_15 = 0
+    count_5_4 = 0
 
     # Add PGD values to filtered entries
     for entry in meta_info:
@@ -72,6 +82,10 @@ def filter_and_add_pgd(meta_info):
                 count_3_13 += 1
             elif entry['label'] == 'ubuntu,4.4.0':
                 count_4_4 += 1
+            elif entry['label'] == 'ubuntu,4.15.0':
+                count_4_15 += 1
+            elif entry['label'] == 'ubuntu,5.4.0':
+                count_5_4 += 1
 
     with open(META_INFO_FILE, 'r') as csvfile:
         csv_reader = csv.reader(csvfile)
@@ -85,14 +99,22 @@ def filter_and_add_pgd(meta_info):
                 if dump_hash not in [entry['dump_hash'] for entry in filtered_meta_info]:
                     pgd = get_pgd(dump_hash)
                     if pgd:
-                        if label == 'ubuntu,3.13.0' and count_3_13 < 10:
+                        if label == 'ubuntu,3.13.0' and count_3_13 < LIMIT_ROWS:
                             filtered_meta_info.append({"dump_hash": dump_hash, "label": label, "pgd": pgd})
                             count_3_13 += 1
-                        elif label == 'ubuntu,4.4.0' and count_4_4 < 10:
+                        elif label == 'ubuntu,4.4.0' and count_4_4 < LIMIT_ROWS:
                             filtered_meta_info.append({"dump_hash": dump_hash, "label": label, "pgd": pgd})
                             count_4_4 += 1
-                        if count_3_13 >= 10 and count_4_4 >= 10:
+                        elif label == 'ubuntu,4.15.0' and count_4_15 < LIMIT_ROWS:
+                            filtered_meta_info.append({"dump_hash": dump_hash, "label": label})
+                            count_4_15 += 1
+                        elif label == 'ubuntu,5.4.0' and count_5_4 < LIMIT_ROWS:
+                            filtered_meta_info.append({"dump_hash": dump_hash, "label": label})
+                            count_5_4 += 1
+
+                        if count_3_13 >= LIMIT_ROWS and count_4_4 >= LIMIT_ROWS and count_4_15 >= LIMIT_ROWS and count_5_4 >= LIMIT_ROWS:
                             break
+
 
     return filtered_meta_info
 
